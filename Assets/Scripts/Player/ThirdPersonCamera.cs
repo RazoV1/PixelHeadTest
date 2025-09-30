@@ -1,13 +1,25 @@
+
+using Unity.Cinemachine;
 using UnityEngine;
 
 public class ThirdPersonCamera : MonoBehaviour
 {
 	[SerializeField] private Transform anchor;
-	[SerializeField] private Transform player;
-	[SerializeField] private Transform playerObj;
+	[SerializeField] private Transform target;
+	[SerializeField] private Transform targetModel;
 	[SerializeField] private Rigidbody rb;
 
 	[SerializeField] private float rotationSpeed;
+
+	[SerializeField] private float interpolationSpeed;
+
+	private CameraState currentState = CameraState.following;
+
+	public enum CameraState
+	{
+		following,
+		pivoted
+	}
 
 	public void Start()
 	{
@@ -17,10 +29,47 @@ public class ThirdPersonCamera : MonoBehaviour
 
 	private void Update()
 	{
-		ChangeAnchorOrientation();
-		TryChangePlayerModelOrientation();
+		HandleCameraBehaviour();
 	}
 
+	private void HandleCameraBehaviour()
+	{
+		switch (currentState)
+		{
+			case CameraState.following:
+				ChangeAnchorOrientation();
+				TryChangePlayerModelOrientation();
+				break;
+			case CameraState.pivoted:
+				HandlePivotedPosition();
+				break;
+		}
+	}
+
+	public void ChangeCameraState(CameraState state, Transform target, Transform anchor = null, Transform targetModel = null)
+	{
+		currentState = state;
+		this.target = target;
+		this.anchor = anchor;
+		this.targetModel = targetModel;
+	    
+		GetComponentInParent<CinemachineBrain>().enabled = currentState == CameraState.following;
+
+		if (currentState == CameraState.following)
+		{
+			transform.localPosition = Vector3.zero;
+			transform.localRotation = Quaternion.Euler(0, 0, 0);
+			Cursor.lockState = CursorLockMode.Locked;
+			Cursor.visible = false;
+		}
+		else
+		{
+			Cursor.lockState = CursorLockMode.None;
+			Cursor.visible = true;
+		}
+	}
+
+	#region Following
 	private void TryChangePlayerModelOrientation()
 	{
 		float horizontalInput = Input.GetAxis("Horizontal");
@@ -29,16 +78,25 @@ public class ThirdPersonCamera : MonoBehaviour
 
 		if (inputDir != Vector3.zero)
 		{
-			playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+			if (!target.GetComponent<PlayerMovement>().CabMove()) return;
+			targetModel.forward = Vector3.Slerp(targetModel.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
 		}
 	}
 
 	private void ChangeAnchorOrientation()
 	{
-		Vector3 viewDir = player.position - new Vector3(
+		Vector3 viewDir = target.position - new Vector3(
 			transform.position.x,
-			player.position.y,
+			target.position.y,
 			transform.position.z);
 		anchor.forward = viewDir.normalized;
 	}
+	#endregion
+	#region Pivoted
+	public void HandlePivotedPosition()
+	{
+		transform.position = Vector3.Lerp(transform.position, target.position, Time.deltaTime * interpolationSpeed);
+		transform.rotation = Quaternion.Lerp(transform.rotation, target.rotation, Time.deltaTime * interpolationSpeed);
+	}
+	#endregion
 }

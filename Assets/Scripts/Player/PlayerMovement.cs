@@ -10,7 +10,7 @@ public class PlayerMovement : MonoBehaviour
 	private Vector3 moveDirection;
 	private Rigidbody rb;
 	[SerializeField] private Transform anchor;
-
+	private bool canMove = true;
 	[Header("Ground Check")]
 	private bool isGrounded;
 	[SerializeField] private float playerHeight;
@@ -18,6 +18,20 @@ public class PlayerMovement : MonoBehaviour
 
 	[Header("Animations")]
 	[SerializeField] private PlayerAnimations playerAnimations;
+
+	[Header("Misc")]
+	[SerializeField] private new ThirdPersonCamera camera;
+	[SerializeField] private Transform playerModel;
+
+	public ThirdPersonCamera GetThirdPersonCamera() => camera;
+
+	public Transform GetAnchor() => anchor;
+
+	public Transform GetModel() => playerModel;
+
+	public void ToggleMovement(bool canMove) { this.canMove = canMove; }
+
+	public bool CabMove() => canMove;
 
 	private void Start()
 	{
@@ -48,8 +62,9 @@ public class PlayerMovement : MonoBehaviour
 
 	private void HandleMovement()
 	{
-		moveDirection = anchor.forward * verticalInput + anchor.right * horizontalInput;
+		if (!canMove) return;
 
+		moveDirection = anchor.forward * verticalInput + anchor.right * horizontalInput;
 		rb.AddForce(moveDirection.normalized * movementSpeed * 10f, ForceMode.Force);
 	}
 
@@ -75,8 +90,8 @@ public class PlayerMovement : MonoBehaviour
 	private void HandleAnimationStates()
 	{
 		playerAnimations.ChangeStateVariable(
-			"velocity", 
-			rb.linearVelocity.magnitude/movementSpeed);
+			"velocity",
+			rb.linearVelocity.magnitude / movementSpeed);
 	}
 	#endregion
 }
