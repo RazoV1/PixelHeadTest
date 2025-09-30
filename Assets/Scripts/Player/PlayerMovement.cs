@@ -5,20 +5,19 @@ public class PlayerMovement : MonoBehaviour
 	[Header("Movement")]
 	[SerializeField] private float movementSpeed;
 	[SerializeField] private float groundDrag;
+	private float horizontalInput;
+	private float verticalInput;
+	private Vector3 moveDirection;
+	private Rigidbody rb;
+	[SerializeField] private Transform anchor;
 
 	[Header("Ground Check")]
 	private bool isGrounded;
 	[SerializeField] private float playerHeight;
 	[SerializeField] private LayerMask groundLayer;
 
-	[SerializeField] private Transform anchor;
-
-	private float horizontalInput;
-	private float verticalInput;
-
-	private Vector3 moveDirection;
-
-	private Rigidbody rb;
+	[Header("Animations")]
+	[SerializeField] private PlayerAnimations playerAnimations;
 
 	private void Start()
 	{
@@ -29,10 +28,17 @@ public class PlayerMovement : MonoBehaviour
 	private void Update()
 	{
 		HandleInput();
-		HandleMovement();
+		HandleAnimationStates();
 		TryApplyGroundDrag();
 		LimitPlayerSpeed();
+		HandleAnimationStates();
 	}
+
+	private void FixedUpdate()
+	{
+		HandleMovement();
+	}
+	#region Movement
 
 	private void HandleInput()
 	{
@@ -44,7 +50,7 @@ public class PlayerMovement : MonoBehaviour
 	{
 		moveDirection = anchor.forward * verticalInput + anchor.right * horizontalInput;
 
-		rb.AddForce(moveDirection.normalized * movementSpeed * 10f * Time.deltaTime, ForceMode.Force);
+		rb.AddForce(moveDirection.normalized * movementSpeed * 10f, ForceMode.Force);
 	}
 
 	private void TryApplyGroundDrag()
@@ -64,4 +70,13 @@ public class PlayerMovement : MonoBehaviour
 	{
 		rb.linearVelocity = Vector3.ClampMagnitude(rb.linearVelocity, movementSpeed);
 	}
+	#endregion
+	#region Animation
+	private void HandleAnimationStates()
+	{
+		playerAnimations.ChangeStateVariable(
+			"velocity", 
+			rb.linearVelocity.magnitude/movementSpeed);
+	}
+	#endregion
 }
